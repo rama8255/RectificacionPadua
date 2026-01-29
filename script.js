@@ -278,7 +278,7 @@ async function setupAddArticle() {
   addBrand: document.querySelector('#addBrand'),
   addModel: document.querySelector('#addModel')
 };
-[11:08, 29/1/2026] Ramiro: els.addArticleForm.addEventListener('submit', async (e) => {
+els.addArticleForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const article = {
@@ -629,6 +629,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
