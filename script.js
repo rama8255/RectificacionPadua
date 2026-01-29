@@ -1,4 +1,16 @@
-document.addEventListener('DOMContentLoaded', () => {
+const SUPABASE_URL = 'https://ovrfmnzacrxgfhumebwv.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+)
+
+let articles = []
+let motors = {}
+let articleIdToDelete = null
+  
+document.addEventListener('DOMContentLoaded', init) => {
   console.log('DOM listo');
 
   // TODO tu código existente acá adentro
@@ -9,13 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 console.log('script cargado correctamente');
 
-const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';
-const SUPABASE_KEY = 'TU_ANON_KEY';
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
 const MOTORS_KEY = 'rp_motors_v1';
@@ -41,11 +47,10 @@ async function loadArticlesFromSupabase() {
   const { data, error } = await supabase
     .from('articles')
     .select('*')
-    .order('created_at', { ascending: true })
 
   if (error) {
-    console.error('Error cargando artículos', error)
-    alert('No se pudieron cargar los artículos')
+    console.error(error)
+    alert('Error cargando artículos')
     return
   }
 
@@ -53,13 +58,12 @@ async function loadArticlesFromSupabase() {
 }
 
 async function insertArticleSupabase(article) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('articles')
     .insert([article])
-    .select()
 
   if (error) {
-    console.error('ERROR SUPABASE:', error)
+    console.error(error)
     alert(error.message)
     return false
   }
@@ -579,11 +583,10 @@ function setupSidebar() {
 function formatMoney(v) { return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 // Init
-function init() {
-  cacheEls();
-  async function init() {
-  cacheEls()
+async function init() {
+  console.log('INIT');
 
+  cacheEls()
   await loadArticlesFromSupabase()
 
   populateFilterOptionsAndDatalists()
@@ -592,7 +595,6 @@ function init() {
   setupAddArticle()
   setupAddToMotorForm()
   setupMotorsUI()
-  renderMotorsList('')
   setupSidebar()
 }
 
@@ -639,12 +641,10 @@ function init() {
   
 }
 
-document.addEventListener('DOMContentLoaded', init);
-
-
 };
 
 });
+
 
 
 
