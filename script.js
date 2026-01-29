@@ -5,35 +5,6 @@ const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-create table if not exists articles (
-  id text primary key,
-  code text,
-  name text not null,
-  measure text,
-  qty integer default 0,
-  price numeric default 0,
-  type text,
-  brand text,
-  model text,
-  created_at timestamp with time zone default now()
-);
-
-alter table articles enable row level security;
-
-create policy "public select"
-on articles for select
-to anon
-using (true);
-
-create policy "public insert"
-on articles for insert
-to anon
-with check (true);
-
-create policy "public update"
-on articles for update
-to anon
-using (true);
 
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
@@ -649,4 +620,5 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
