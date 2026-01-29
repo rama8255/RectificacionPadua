@@ -81,6 +81,7 @@ async function fetchRemoteData() {
   });
 }
 
+// Reemplaza insertArticleRemote por esta versión de diagnóstico
 async function insertArticleRemote(article) {
   if (!supabase) throw new Error('Supabase no inicializado');
   const payload = {
@@ -93,9 +94,45 @@ async function insertArticleRemote(article) {
     brand: article.brand || null,
     model: article.model || null
   };
-  const { data, error } = await supabase.from('articles').insert([payload]).select().single();
-  if (error) throw error;
-  return data; // retornará el registro con id
+  try {
+    const { data, error } = await supabase.from('articles').insert([payload]).select().single();
+    if (error) {
+      console.error('insertArticleRemote error', error);
+      throw error;
+    }
+    console.log('insertArticleRemote success', data);
+    return data;
+  } catch (err) {
+    console.error('insertArticleRemote threw', err);
+    throw err;
+  }
+}
+
+// Reemplaza createArticle por esta versión que muestra errores y logs
+async function createArticle(article) {
+  console.log('createArticle attempt', article);
+  if (supabase) {
+    try {
+      const created = await insertArticleRemote(article);
+      // push a memoria desde remoto
+      articles.unshift(created);
+      saveLocal();
+      populateFilterOptionsAndDatalists();
+      renderTable();
+      return created;
+    } catch (e) {
+      console.error('Fallo insertar en Supabase; guardando localmente', e);
+      alert('Error guardando en Supabase: ' + (e.message || JSON.stringify(e)));
+      // continúa al fallback local
+    }
+  }
+  // fallback local
+  const newArt = { id: generateId('art'), ...article };
+  articles.unshift(newArt);
+  saveLocal();
+  populateFilterOptionsAndDatalists();
+  renderTable();
+  return newArt;
 }
 
 async function updateArticleRemote(id, changes) {
