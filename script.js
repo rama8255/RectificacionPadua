@@ -10,7 +10,7 @@ let articles = []
 let motors = {}
 let articleIdToDelete = null
   
-document.addEventListener('DOMContentLoaded', init) => {
+document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM listo');
 
   // TODO tu código existente acá adentro
@@ -644,6 +644,7 @@ async function init() {
 };
 
 });
+
 
 
 
