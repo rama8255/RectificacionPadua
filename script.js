@@ -262,6 +262,17 @@ async function setupAddArticle() {
 
   els.addArticleForm.addEventListener('submit', async e => {
     e.preventDefault();
+    const article = {
+  id: generateId('art'),
+  code: code.value.trim(),
+  name: name.value.trim(),
+  measure: measure.value,
+  qty: Number(qty.value),
+  price: Number(price.value),
+  type: type.value,
+  brand: brand.value.trim(),
+  model: model.value.trim()
+}
     const code = document.getElementById('addCode').value.trim();
     const name = document.getElementById('addName').value.trim();
     const measure = document.getElementById('addMeasure').value.trim();
@@ -621,6 +632,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
