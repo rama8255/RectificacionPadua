@@ -260,19 +260,31 @@ async function setupAddArticle() {
     modal.show();
   });
 
-  els.addArticleForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const article = {
-  id: generateId('art'),
-  code: code.value.trim(),
-  name: name.value.trim(),
-  measure: measure.value,
-  qty: Number(qty.value),
-  price: Number(price.value),
-  type: type.value,
-  brand: brand.value.trim(),
-  model: model.value.trim()
-}
+  els.addArticleForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const article = {
+    id: generateId('art'),
+    code: els.code.value.trim(),
+    name: els.name.value.trim(),
+    measure: els.measure.value,
+    qty: Number(els.qty.value),
+    price: Number(els.price.value),
+    type: els.type.value,
+    brand: els.brand.value.trim(),
+    model: els.model.value.trim()
+  };
+
+  const ok = await insertArticleSupabase(article);
+
+  if (!ok) {
+    alert('Error al guardar en la base');
+    return;
+  }
+
+  alert('Artículo guardado correctamente');
+  els.addArticleForm.reset();
+});
     const code = document.getElementById('addCode').value.trim();
     const name = document.getElementById('addName').value.trim();
     const measure = document.getElementById('addMeasure').value.trim();
@@ -632,6 +644,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
