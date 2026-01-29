@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inventario - Rectificación (Motores)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-light">
+  <div class="d-flex vh-100">
+    <!-- Sidebar izquierdo flotante -->
+    <nav class="sidebar bg-white border-end p-2">
+      <div class="sidebar-inner d-flex flex-column align-items-center gap-2">
+        <button class="btn btn-square btn-icon" data-bs-target="#tab-inventory" aria-current="true" title="Inventario">
+          <span class="icon">📦</span>
+          <span class="label">Inventario</span>
+        </button>
+
+        <button class="btn btn-square btn-icon" data-bs-target="#tab-motors" title="Motores">
+          <span class="icon">🔧</span>
+          <span class="label">Motores</span>
+        </button>
+      </div>
+
+      <div class="mt-auto small text-muted px-2 py-3 w-100 text-center">
+        Rectificación — datos en localStorage
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="flex-fill p-4 overflow-auto">
+      <div id="tab-inventory" class="tab-pane active">
+        <h2>Inventario</h2>
+
+        <div class="card mb-3">
+          <div class="card-body">
+            <form id="filtersForm" class="row g-3 align-items-end">
+              <div class="col-md-4">
+                <label for="searchCode" class="form-label">Buscar por código</label>
+                <input id="searchCode" class="form-control" placeholder="Escribe código..." />
+              </div>
+
+              <div class="col-md-2">
+                <label for="filterType" class="form-label">Tipo</label>
+                <select id="filterType" class="form-select">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label for="filterBrand" class="form-label">Marca</label>
+                <select id="filterBrand" class="form-select">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+
+              <div class="col-md-2">
+                <label for="filterModel" class="form-label">Modelo</label>
+                <select id="filterModel" class="form-select">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+
+              <div class="col-md-1 d-flex align-items-end">
+                <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary w-100">Limpiar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-striped mb-0" id="articlesTable">
+                <thead class="table-light">
+                  <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Medida</th>
+                    <th>Precio (u.)</th>
+                    <th>Cantidad</th>
+                    <th class="text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- filas generadas por JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating add article button -->
+        <button id="fabAddArticle" class="fab btn-primary" title="Agregar artículo">+</button>
+      </div>
+
+      <div id="tab-motors" class="tab-pane d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2>Motores</h2>
+          <div class="input-group w-50">
+            <input id="searchMotor" class="form-control" placeholder="Buscar motor (nombre)..." />
+            <button id="btnNewMotor" class="btn btn-outline-primary" type="button">Nuevo motor</button>
+          </div>
+        </div>
+
+        <div id="motorsList" class="row gy-3">
+          <!-- paneles de motor generados por JS -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Agregar/Editar Artículo global -->
+  <div class="modal fade" id="modalAddArticle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form id="addArticleForm" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Agregar artículo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-4">
+              <label class="form-label">Código</label>
+              <input id="addCode" class="form-control" />
+            </div>
+
+            <div class="col-8">
+              <label class="form-label">Nombre</label>
+              <!-- datalist para seleccionar o escribir nombre nuevo -->
+              <input id="addName" class="form-control" list="dlNames" />
+              <datalist id="dlNames"></datalist>
+            </div>
+
+            <div class="col-4">
+              <label class="form-label">Medida</label>
+              <input id="addMeasure" class="form-control" />
+            </div>
+            <div class="col-4">
+              <label class="form-label">Cantidad</label>
+              <input id="addQty" type="number" class="form-control" value="0" min="0" />
+            </div>
+            <div class="col-4">
+              <label class="form-label">Precio (u.)</label>
+              <input id="addPrice" type="number" step="0.01" class="form-control" value="0.00" min="0" />
+            </div>
+
+            <div class="col-4">
+              <label class="form-label">Tipo</label>
+              <input id="addType" class="form-control" list="dlTypes" />
+              <datalist id="dlTypes"></datalist>
+            </div>
+            <div class="col-4">
+              <label class="form-label">Marca</label>
+              <input id="addBrand" class="form-control" list="dlBrands" />
+              <datalist id="dlBrands"></datalist>
+            </div>
+            <div class="col-4">
+              <label class="form-label">Modelo</label>
+              <input id="addModel" class="form-control" list="dlModels" />
+              <datalist id="dlModels"></datalist>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="resetAdd" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Agregar item a motor (elige desde inventario o mano de obra) -->
+  <div class="modal fade" id="modalAddToMotor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form id="addToMotorForm" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Agregar ítem al motor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="currentMotorId" />
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="isLabor" />
+            <label class="form-check-label" for="isLabor">Mano de obra (sin código ni medida)</label>
+          </div>
+
+          <div id="motorItemFields" class="row g-3">
+            <div class="col-12" id="motorSelectWrap">
+              <label class="form-label">Elegir artículo (desde inventario)</label>
+              <select id="motorItemSelect" class="form-select">
+                <!-- opciones generadas por JS -->
+              </select>
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Código</label>
+              <input id="motorItemCode" class="form-control" readonly />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Nombre</label>
+              <input id="motorItemName" class="form-control" readonly />
+            </div>
+            <div class="col-4">
+              <label class="form-label">Medida</label>
+              <input id="motorItemMeasure" class="form-control" readonly />
+            </div>
+            <div class="col-4">
+              <label class="form-label">Cantidad</label>
+              <input id="motorItemQty" type="number" class="form-control" value="1" min="1" />
+            </div>
+            <div class="col-4">
+              <label class="form-label">Precio (u.)</label>
+              <input id="motorItemPrice" type="number" step="0.01" class="form-control" value="0.00" min="0" />
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Agregar al motor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmación de eliminación (estético y centrado) -->
+  <div class="modal fade confirm-blur" id="modalConfirmDelete" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center p-3">
+        <div class="modal-body">
+          <div class="display-4 text-danger">🗑️</div>
+          <h5 class="mt-2">Confirmar eliminación</h5>
+          <p id="confirmDeleteText" class="text-muted">¿Deseas eliminar este artículo?</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button id="cancelDelete" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="confirmDelete" type="button" class="btn btn-danger">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
