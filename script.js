@@ -4,7 +4,18 @@ const SUPABASE_URL = 'https://ovrfmnzacrxgfhumebwv.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const els = {
+  addArticleForm: document.querySelector('#addArticleForm'),
 
+  addCode: document.querySelector('#addCode'),
+  addName: document.querySelector('#addName'),
+  addMeasure: document.querySelector('#addMeasure'),
+  addQty: document.querySelector('#addQty'),
+  addPrice: document.querySelector('#addPrice'),
+  addType: document.querySelector('#addType'),
+  addBrand: document.querySelector('#addBrand'),
+  addModel: document.querySelector('#addModel')
+};
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
 const MOTORS_KEY = 'rp_motors_v1';
@@ -260,19 +271,31 @@ async function setupAddArticle() {
     modal.show();
   });
 
-  els.addArticleForm.addEventListener('submit', async (e) => {
+  [11:05, 29/1/2026] Ramiro: const els = {
+  addArticleForm: document.querySelector('#addArticleForm'),
+
+  addCode: document.querySelector('#addCode'),
+  addName: document.querySelector('#addName'),
+  addMeasure: document.querySelector('#addMeasure'),
+  addQty: document.querySelector('#addQty'),
+  addPrice: document.querySelector('#addPrice'),
+  addType: document.querySelector('#addType'),
+  addBrand: document.querySelector('#addBrand'),
+  addModel: document.querySelector('#addModel')
+};
+[11:08, 29/1/2026] Ramiro: els.addArticleForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const article = {
     id: generateId('art'),
-    code: els.code.value.trim(),
-    name: els.name.value.trim(),
-    measure: els.measure.value,
-    qty: Number(els.qty.value),
-    price: Number(els.price.value),
-    type: els.type.value,
-    brand: els.brand.value.trim(),
-    model: els.model.value.trim()
+    code: els.addCode.value.trim(),
+    name: els.addName.value.trim(),
+    measure: els.addMeasure.value.trim(),
+    qty: Number(els.addQty.value),
+    price: Number(els.addPrice.value),
+    type: els.addType.value.trim(),
+    brand: els.addBrand.value.trim(),
+    model: els.addModel.value.trim()
   };
 
   const ok = await insertArticleSupabase(article);
@@ -285,38 +308,6 @@ async function setupAddArticle() {
   alert('Artículo guardado correctamente');
   els.addArticleForm.reset();
 });
-    const code = document.getElementById('addCode').value.trim();
-    const name = document.getElementById('addName').value.trim();
-    const measure = document.getElementById('addMeasure').value.trim();
-    const qty = Number(document.getElementById('addQty').value) || 0;
-    const price = Number(document.getElementById('addPrice').value) || 0;
-    const type = document.getElementById('addType').value.trim();
-    const brand = document.getElementById('addBrand').value.trim();
-    const model = document.getElementById('addModel').value.trim();
-
-    if (!name) { alert('Nombre requerido'); return; }
-    if (!measure) { alert('Medida requerida'); return; }
-    if (!qty) { alert('Cantidad requerida'); return; }
-    if (!price) { alert('Precio requerido'); return; }
-    if (!brand) { alert('Marca requerida'); return; }
-    if (!model) { alert('Modelo requerido'); return; }
-
-    // Siempre crear un nuevo artículo (aunque el código o nombre exista)
-    const newArticle = {
-      id: generateId('art'),
-      code, name, measure, qty, price, type, brand, model
-    };
-    const ok = await insertArticleSupabase(newArticle)
-  if (!ok) return
-
-    articles.push(newArticle)
-    populateFilterOptionsAndDatalists()
-    renderTable()
-    modal.hide()
-    populateFilterOptionsAndDatalists();
-    renderTable();
-    modal.hide();
-  };
 
 // Motors: helpers
 function renderMotorsList(filterText='') {
@@ -643,6 +634,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
