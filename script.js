@@ -317,7 +317,6 @@ async function setupAddArticle() {
     renderTable();
     modal.hide();
   };
-}
 
 // Motors: helpers
 function renderMotorsList(filterText='') {
@@ -644,6 +643,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
