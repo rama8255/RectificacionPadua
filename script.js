@@ -4,18 +4,7 @@ const SUPABASE_URL = 'https://ovrfmnzacrxgfhumebwv.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-const els = {
-  addArticleForm: document.querySelector('#addArticleForm'),
 
-  addCode: document.querySelector('#addCode'),
-  addName: document.querySelector('#addName'),
-  addMeasure: document.querySelector('#addMeasure'),
-  addQty: document.querySelector('#addQty'),
-  addPrice: document.querySelector('#addPrice'),
-  addType: document.querySelector('#addType'),
-  addBrand: document.querySelector('#addBrand'),
-  addModel: document.querySelector('#addModel')
-};
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
 const MOTORS_KEY = 'rp_motors_v1';
@@ -77,11 +66,17 @@ async function updateArticleQty(id, qty) {
 }
 // Elementos DOM
 const els = {
-  searchCode: null, filterType: null, filterBrand: null, filterModel: null, tableBody: null,
-  addArticleForm: null, addToMotorForm: null, searchMotor: null, motorsList: null,
-  modalConfirmDelete: null, confirmDeleteText: null, confirmDeleteBtn: null, cancelDeleteBtn: null,
-  clearFiltersBtn: null
-};
+  addArticleForm: document.querySelector('#addArticleForm'),
+
+  addCode: document.querySelector('#addCode'),
+  addName: document.querySelector('#addName'),
+  addMeasure: document.querySelector('#addMeasure'),
+  addQty: document.querySelector('#addQty'),
+  addPrice: document.querySelector('#addPrice'),
+  addType: document.querySelector('#addType'),
+  addBrand: document.querySelector('#addBrand'),
+  addModel: document.querySelector('#addModel')
+};;
 
 function cacheEls() {
   els.searchCode = document.getElementById('searchCode');
@@ -634,6 +629,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
