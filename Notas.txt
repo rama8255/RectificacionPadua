@@ -1,0 +1,6 @@
+    if (!name) { alert('Nombre requerido'); return; }
+    if (!measure) { alert('Medida requerida'); return; }
+    if (!qty) { alert('Cantidad requerida'); return; }
+    if (!price) { alert('Precio requerido'); return; }
+    if (!brand) { alert('Marca requerida'); return; }
+    if (!model) { alert('Modelo requerido'); return; }
