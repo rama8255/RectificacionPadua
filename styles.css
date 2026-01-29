@@ -1,0 +1,104 @@
+/* Estilos generales */
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.table td, .table th { vertical-align: middle; }
+
+/* Sidebar flotante y desplegable al hover */
+.sidebar {
+  width: 72px;
+  transition: width 220ms ease;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sidebar:hover {
+  width: 220px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.sidebar .sidebar-inner {
+  width: 100%;
+  transition: padding 220ms ease;
+  padding: 8px 6px;
+}
+.btn-square {
+  height: 56px;
+  width: 56px;
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 1rem;
+  gap: 8px;
+  border: none;
+  background: #f7f7f8;
+  color: #333;
+  transition: background 160ms, transform 160ms;
+}
+.btn-square:hover { transform: translateX(4px); background: #fff; box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
+.btn-square .label { margin-left: 10px; white-space: nowrap; opacity: 0; transition: opacity 160ms; font-weight: 600; color:#333; }
+/* Mostrar etiqueta cuando el sidebar está expandido */
+.sidebar:hover .btn-square .label { opacity: 1; }
+
+/* Icono y label layout inside button */
+.btn-icon { display:flex; align-items:center; justify-content:flex-start; padding-left:12px; }
+
+/* Floating action button (circular +) */
+.fab {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 28px;
+  line-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+  border: none;
+}
+
+/* Motor panel FAB (inside card) */
+.motor-fab {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* Motor card positioning */
+.motor-card { position: relative; overflow: visible; }
+
+/* Trash button small */
+.btn-trash {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+/* Modal backdrop blur: aplica cuando se usa modal con clase confirm-blur */
+.modal-backdrop.show {
+  backdrop-filter: blur(3px) saturate(1.05);
+}
+
+/* Ajustes visuales del modal de confirmación */
+.confirm-blur .modal-content {
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+
+/* Responsive tweaks */
+@media (max-width: 767px) {
+  .sidebar:hover { width: 160px; }
+  .btn-square { height:48px; width:48px; }
+}
