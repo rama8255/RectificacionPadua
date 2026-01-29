@@ -5,7 +5,6 @@ const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
 const MOTORS_KEY = 'rp_motors_v1';
@@ -620,5 +619,6 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
