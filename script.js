@@ -316,7 +316,7 @@ async function setupAddArticle() {
     populateFilterOptionsAndDatalists();
     renderTable();
     modal.hide();
-  });
+  };
 }
 
 // Motors: helpers
@@ -644,6 +644,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
