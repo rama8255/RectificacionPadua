@@ -1,10 +1,12 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+console.log('script cargado correctamente');
 
-const SUPABASE_URL = 'https://ovrfmnzacrxgfhumebwv.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
+const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';
+const SUPABASE_KEY = 'TU_ANON_KEY';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
 const MOTORS_KEY = 'rp_motors_v1';
@@ -632,6 +634,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 
 };
+
 
 
 
