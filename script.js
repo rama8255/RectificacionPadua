@@ -1,3 +1,7 @@
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM listo');
+
+  // TODO tu código existente acá adentro
 console.log('script cargado correctamente');
 
 const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';
@@ -635,6 +639,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 };
 
+});
 
 
 
