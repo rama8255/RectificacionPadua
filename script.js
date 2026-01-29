@@ -42,15 +42,17 @@ async function loadArticlesFromSupabase() {
 }
 
 async function insertArticleSupabase(article) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('articles')
     .insert([article])
+    .select()
 
   if (error) {
-    console.error('Error insertando artículo', error)
-    alert('Error al guardar en la base')
+    console.error('ERROR SUPABASE:', error)
+    alert(error.message)
     return false
   }
+
   return true
 }
 
@@ -619,6 +621,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
