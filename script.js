@@ -1,3 +1,40 @@
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+const SUPABASE_URL = 'https://ovrfmnzacrxgfhumebwv.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_AzHzLucADvr77dDabbiRzw_K_wJZkov'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+create table if not exists articles (
+  id text primary key,
+  code text,
+  name text not null,
+  measure text,
+  qty integer default 0,
+  price numeric default 0,
+  type text,
+  brand text,
+  model text,
+  created_at timestamp with time zone default now()
+);
+
+alter table articles enable row level security;
+
+create policy "public select"
+on articles for select
+to anon
+using (true);
+
+create policy "public insert"
+on articles for insert
+to anon
+with check (true);
+
+create policy "public update"
+on articles for update
+to anon
+using (true);
+
 // STORAGE keys
 const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
 const MOTORS_KEY = 'rp_motors_v1';
@@ -19,25 +56,42 @@ let motors = {};
 let articleIdToDelete = null;
 
 // Save/load
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) articles = JSON.parse(raw);
-  } catch (e) { console.error('Error cargando storage articles', e); }
+async function loadArticlesFromSupabase() {
+  const { data, error } = await supabase
+    .from('articles')
+    .select('*')
+    .order('created_at', { ascending: true })
 
-  try {
-    const rawm = localStorage.getItem(MOTORS_KEY);
-    if (rawm) motors = JSON.parse(rawm);
-  } catch (e) { console.error('Error cargando storage motors', e); }
+  if (error) {
+    console.error('Error cargando artículos', error)
+    alert('No se pudieron cargar los artículos')
+    return
+  }
+
+  articles = data || []
 }
 
-function saveToStorage() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
-    localStorage.setItem(MOTORS_KEY, JSON.stringify(motors));
-  } catch (e) { console.error('Error guardando storage', e); }
+async function insertArticleSupabase(article) {
+  const { error } = await supabase
+    .from('articles')
+    .insert([article])
+
+  if (error) {
+    console.error('Error insertando artículo', error)
+    alert('Error al guardar en la base')
+    return false
+  }
+  return true
 }
 
+async function updateArticleQty(id, qty) {
+  const { error } = await supabase
+    .from('articles')
+    .update({ qty })
+    .eq('id', id)
+
+  if (error) console.error('Error actualizando cantidad', error)
+}
 // Elementos DOM
 const els = {
   searchCode: null, filterType: null, filterBrand: null, filterModel: null, tableBody: null,
@@ -175,13 +229,29 @@ function renderTable() {
 }
 
 // Change qty by article id
-function changeQtyById(id, delta) {
+async function changeQtyById(id, delta) {
   const idx = articles.findIndex(x => x.id === id);
   if (idx === -1) return;
-  articles[idx].qty = Math.max(0, (Number(articles[idx].qty) || 0) + delta);
-  saveToStorage();
+
+  const newQty = Math.max(0, (Number(articles[idx].qty) || 0) + delta);
+
+  // actualizar en Supabase
+  const { error } = await supabase
+    .from('articles')
+    .update({ qty: newQty })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error actualizando stock', error);
+    alert('No se pudo actualizar el stock');
+    return;
+  }
+
+  // actualizar estado local solo si Supabase OK
+  articles[idx].qty = newQty;
+
   const el = document.getElementById('qty-' + escapeId(id));
-  if (el) el.textContent = articles[idx].qty;
+  if (el) el.textContent = newQty;
 }
 
 // Delete flow by id
@@ -241,9 +311,13 @@ function setupAddArticle() {
       id: generateId('art'),
       code, name, measure, qty, price, type, brand, model
     };
-    articles.push(newArticle);
+    const ok = await insertArticleSupabase(newArticle)
+  if (!ok) return
 
-    saveToStorage();
+    articles.push(newArticle)
+    populateFilterOptionsAndDatalists()
+    renderTable()
+    modal.hide()
     populateFilterOptionsAndDatalists();
     renderTable();
     modal.hide();
@@ -516,13 +590,26 @@ function formatMoney(v) { return Number(v || 0).toLocaleString(undefined, { mini
 // Init
 function init() {
   cacheEls();
-  loadFromStorage();
+  async function init() {
+  cacheEls()
+
+  await loadArticlesFromSupabase()
+
+  populateFilterOptionsAndDatalists()
+  renderTable()
+
+  setupAddArticle()
+  setupAddToMotorForm()
+  setupMotorsUI()
+  renderMotorsList('')
+  setupSidebar()
+}
 
   // ensure sample data saved if none
   if (!localStorage.getItem(STORAGE_KEY)) saveToStorage();
 
   populateFilterOptionsAndDatalists();
-  renderTable();
+  document.addEventListener('DOMContentLoaded', init)
 
   setupAddArticle();
   setupAddToMotorForm();
@@ -558,7 +645,8 @@ function init() {
   els.cancelDeleteBtn.addEventListener('click', () => { articleIdToDelete = null; });
 
   // save on unload
-  window.addEventListener('beforeunload', () => saveToStorage());
+  
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
