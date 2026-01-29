@@ -1,371 +1,44 @@
-// script.js - integrado con Supabase (fallback a localStorage)
-// Requiere: config.js con `CONFIG.SUPABASE_URL` y `CONFIG.SUPABASE_ANON_KEY`
-// y la librería: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js
+// STORAGE keys
+const STORAGE_KEY = 'rp_articles_v4'; // con ids y precios
+const MOTORS_KEY = 'rp_motors_v1';
 
-// STORAGE key para fallback local
-const LOCAL_STORAGE_KEY = 'rp_articles_local_v1';
-const LOCAL_MOTORS_KEY = 'rp_motors_local_v1';
-
-// Inicializa Supabase usando CONFIG desde config.js
-let supabase = null;
-try {
-  if (typeof CONFIG !== 'undefined') {
-    supabase = supabaseJs.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  } else {
-    console.warn('CONFIG no definido. Asegúrate de tener config.js cargado antes de script.js');
-  }
-} catch (e) {
-  console.warn('No se pudo inicializar Supabase (librería ausente o CONFIG faltante).', e);
-  supabase = null;
-}
-
-// Datos en memoria
-let articles = [];
-let motors = {}; // motors keyed by id
-
-// Utilidades
+// helper id generator
 function generateId(prefix='id') { return prefix + '_' + Math.random().toString(36).slice(2,9); }
-function escapeHtml(s) { return String(s || ''); }
-function escapeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
-function formatMoney(v) { return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-// ---------- Fallback localStorage helpers ----------
-function loadLocal() {
+// Datos de ejemplo iniciales (con ids y precios)
+let articles = [
+  { id: 'art_A100', code: 'A100', name: 'Filtro aceite', measure: 'Pieza', qty: 12, price: 15.50, type: 'Motor', brand: 'MarcaX', model: 'M1' },
+  { id: 'art_B200', code: 'B200', name: 'Biela', measure: 'Unidad', qty: 5, price: 120.00, type: 'Motor', brand: 'MarcaY', model: 'M2' },
+  { id: 'art_C300', code: 'C300', name: 'Cojinete', measure: 'Juego', qty: 8, price: 45.00, type: 'Motor', brand: 'MarcaX', model: 'M1' },
+];
+
+// motors structure
+let motors = {};
+
+// Delete candidate (article id)
+let articleIdToDelete = null;
+
+// Save/load
+function loadFromStorage() {
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) articles = JSON.parse(raw);
-  } catch (e) { console.error('Error cargando articles de localStorage', e); }
+  } catch (e) { console.error('Error cargando storage articles', e); }
+
   try {
-    const rawm = localStorage.getItem(LOCAL_MOTORS_KEY);
+    const rawm = localStorage.getItem(MOTORS_KEY);
     if (rawm) motors = JSON.parse(rawm);
-  } catch (e) { console.error('Error cargando motors de localStorage', e); }
+  } catch (e) { console.error('Error cargando storage motors', e); }
 }
 
-function saveLocal() {
-  try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(articles)); } catch(e){ console.warn('No se pudo guardar articles en localStorage', e); }
-  try { localStorage.setItem(LOCAL_MOTORS_KEY, JSON.stringify(motors)); } catch(e){ console.warn('No se pudo guardar motors en localStorage', e); }
-}
-
-// ---------- Supabase helpers ----------
-async function fetchRemoteData() {
-  if (!supabase) throw new Error('Supabase no inicializado');
-
-  // Fetch articles
-  const { data: articlesData, error: aErr } = await supabase
-    .from('articles')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (aErr) throw aErr;
-  articles = articlesData || [];
-
-  // Fetch motors with items (nested)
-  const { data: motorsData, error: mErr } = await supabase
-    .from('motors')
-    .select('*, motor_items(*)')
-    .order('created_at', { ascending: false });
-
-  if (mErr) throw mErr;
-  motors = {};
-  (motorsData || []).forEach(m => {
-    motors[m.id] = { id: m.id, name: m.name, items: (m.motor_items || []).map(it => ({
-      id: it.id,
-      code: it.code,
-      name: it.name,
-      measure: it.measure,
-      qty: it.qty,
-      price: Number(it.price),
-      isLabor: !!it.is_labor,
-      sourceArticleId: it.source_article_id || null
-    })) , created_at: m.created_at };
-  });
-}
-
-// Reemplaza insertArticleRemote por esta versión de diagnóstico
-async function insertArticleRemote(article) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  const payload = {
-    code: article.code || null,
-    name: article.name,
-    measure: article.measure || null,
-    qty: article.qty || 0,
-    price: article.price || 0,
-    type: article.type || null,
-    brand: article.brand || null,
-    model: article.model || null
-  };
+function saveToStorage() {
   try {
-    const { data, error } = await supabase.from('articles').insert([payload]).select().single();
-    if (error) {
-      console.error('insertArticleRemote error', error);
-      throw error;
-    }
-    console.log('insertArticleRemote success', data);
-    return data;
-  } catch (err) {
-    console.error('insertArticleRemote threw', err);
-    throw err;
-  }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
+    localStorage.setItem(MOTORS_KEY, JSON.stringify(motors));
+  } catch (e) { console.error('Error guardando storage', e); }
 }
 
-// Reemplaza createArticle por esta versión que muestra errores y logs
-async function createArticle(article) {
-  console.log('createArticle attempt', article);
-  if (supabase) {
-    try {
-      const created = await insertArticleRemote(article);
-      // push a memoria desde remoto
-      articles.unshift(created);
-      saveLocal();
-      populateFilterOptionsAndDatalists();
-      renderTable();
-      return created;
-    } catch (e) {
-      console.error('Fallo insertar en Supabase; guardando localmente', e);
-      alert('Error guardando en Supabase: ' + (e.message || JSON.stringify(e)));
-      // continúa al fallback local
-    }
-  }
-  // fallback local
-  const newArt = { id: generateId('art'), ...article };
-  articles.unshift(newArt);
-  saveLocal();
-  populateFilterOptionsAndDatalists();
-  renderTable();
-  return newArt;
-}
-
-async function updateArticleRemote(id, changes) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  const { data, error } = await supabase.from('articles').update(changes).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
-}
-
-async function deleteArticleRemote(id) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  // Borra motor_items que referencien el article (opcional)
-  const { error: delItemsErr } = await supabase.from('motor_items').delete().eq('source_article_id', id);
-  if (delItemsErr) console.warn('No se pudieron eliminar motor_items referenciados', delItemsErr);
-  const { data, error } = await supabase.from('articles').delete().eq('id', id).select();
-  if (error) throw error;
-  return data;
-}
-
-async function insertMotorRemote(name) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  const { data, error } = await supabase.from('motors').insert([{ name }]).select().single();
-  if (error) throw error;
-  return data;
-}
-
-async function insertMotorItemRemote(motorId, item) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  const payload = {
-    motor_id: motorId,
-    source_article_id: item.sourceArticleId || null,
-    code: item.code || null,
-    name: item.name,
-    measure: item.measure || null,
-    qty: item.qty || 0,
-    price: item.price || 0,
-    is_labor: !!item.isLabor
-  };
-  const { data, error } = await supabase.from('motor_items').insert([payload]).select().single();
-  if (error) throw error;
-  return data;
-}
-
-async function deleteMotorItemRemote(id) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  const { data, error } = await supabase.from('motor_items').delete().eq('id', id).select();
-  if (error) throw error;
-  return data;
-}
-
-async function deleteMotorRemote(id) {
-  if (!supabase) throw new Error('Supabase no inicializado');
-  // motor_items con on delete cascade en schema.sql
-  const { data, error } = await supabase.from('motors').delete().eq('id', id).select();
-  if (error) throw error;
-  return data;
-}
-
-// ---------- Abstracciones: usar Supabase con fallback local ----------
-async function loadData() {
-  // Intenta obtener de Supabase; si falla, carga local
-  if (supabase) {
-    try {
-      await fetchRemoteData();
-      // guardamos cache local
-      saveLocal();
-      return;
-    } catch (e) {
-      console.warn('No se pudo cargar desde Supabase, se usará cache local.', e);
-      loadLocal();
-      return;
-    }
-  } else {
-    loadLocal();
-  }
-}
-
-async function createArticle(article) {
-  if (supabase) {
-    try {
-      const created = await insertArticleRemote(article);
-      // push a memoria desde remoto
-      articles.unshift(created);
-      saveLocal();
-      populateFilterOptionsAndDatalists();
-      renderTable();
-      return created;
-    } catch (e) {
-      console.warn('Fallo insertar en Supabase; guardando localmente', e);
-    }
-  }
-  // fallback local
-  const newArt = { id: generateId('art'), ...article };
-  articles.unshift(newArt);
-  saveLocal();
-  populateFilterOptionsAndDatalists();
-  renderTable();
-  return newArt;
-}
-
-async function updateArticleQtyById(id, delta) {
-  const idx = articles.findIndex(a => a.id === id || a.id === id); // id could be uuid or local generated
-  if (idx === -1) return;
-  const newQty = Math.max(0, (Number(articles[idx].qty) || 0) + delta);
-
-  if (supabase && articles[idx].id && articles[idx].id.startsWith('art_') === false) {
-    // If id looks like a DB uuid (not local 'art_*'), update remote
-    try {
-      await updateArticleRemote(articles[idx].id, { qty: newQty, updated_at: new Date().toISOString() });
-      articles[idx].qty = newQty;
-      saveLocal();
-      const el = document.getElementById('qty-' + escapeId(articles[idx].id));
-      if (el) el.textContent = articles[idx].qty;
-      return;
-    } catch (e) {
-      console.warn('Error actualizando qty en Supabase, aplicando localmente', e);
-    }
-  }
-  // fallback local update
-  articles[idx].qty = newQty;
-  saveLocal();
-  const el = document.getElementById('qty-' + escapeId(articles[idx].id));
-  if (el) el.textContent = articles[idx].qty;
-}
-
-async function removeArticleById(id) {
-  // Remove remote if possible
-  if (supabase && id && !id.startsWith('art_')) {
-    try {
-      await deleteArticleRemote(id);
-      // refresh remote snapshot
-      await loadData();
-      populateFilterOptionsAndDatalists();
-      renderTable();
-      renderMotorsList( (document.getElementById('searchMotor')?.value || '').trim() );
-      return;
-    } catch (e) {
-      console.warn('No se pudo eliminar remotamente, se eliminará localmente', e);
-    }
-  }
-  // fallback local delete
-  articles = articles.filter(a => a.id !== id);
-  // limpiar en motors localmente
-  Object.keys(motors).forEach(mid => {
-    motors[mid].items = (motors[mid].items || []).filter(it => it.sourceArticleId !== id);
-  });
-  saveLocal();
-  populateFilterOptionsAndDatalists();
-  renderTable();
-  renderMotorsList( (document.getElementById('searchMotor')?.value || '').trim() );
-}
-
-// Motors: create, add item, delete
-async function createMotor(name) {
-  if (supabase) {
-    try {
-      const created = await insertMotorRemote(name);
-      motors[created.id] = { id: created.id, name: created.name, items: [], created_at: created.created_at };
-      saveLocal();
-      renderMotorsList('');
-      return motors[created.id];
-    } catch (e) {
-      console.warn('Fallo crear motor en Supabase, creando local', e);
-    }
-  }
-  const id = generateId('motor');
-  motors[id] = { id, name, items: [], created_at: new Date().toISOString() };
-  saveLocal();
-  renderMotorsList('');
-  return motors[id];
-}
-
-async function addItemToMotor(mid, item) {
-  // item: { code, name, measure, qty, price, isLabor, sourceArticleId? }
-  if (supabase && motors[mid] && motors[mid].id && !motors[mid].id.startsWith('motor_')) {
-    try {
-      const created = await insertMotorItemRemote(mid, item);
-      // push to local motor snapshot
-      if (!motors[mid].items) motors[mid].items = [];
-      motors[mid].items.push({
-        id: created.id,
-        code: created.code,
-        name: created.name,
-        measure: created.measure,
-        qty: created.qty,
-        price: Number(created.price),
-        isLabor: !!created.is_labor,
-        sourceArticleId: created.source_article_id || null
-      });
-      saveLocal();
-      renderMotorItems(motors[mid]);
-      updateMotorTotal(mid);
-      return;
-    } catch (e) {
-      console.warn('Error agregando item a motor en Supabase, aplicando local', e);
-    }
-  }
-  // fallback local push
-  if (!motors[mid]) {
-    motors[mid] = { id: mid, name: 'Motor temporal', items: [], created_at: new Date().toISOString() };
-  }
-  const localItem = { id: generateId('mi'), ...item };
-  motors[mid].items.push(localItem);
-  saveLocal();
-  renderMotorItems(motors[mid]);
-  updateMotorTotal(mid);
-}
-
-// delete motor item
-async function removeMotorItem(mid, idx) {
-  const item = motors[mid].items[idx];
-  if (!item) return;
-  if (supabase && item.id && !item.id.startsWith('mi')) {
-    try {
-      await deleteMotorItemRemote(item.id);
-      // refresh remote snapshot
-      await loadData();
-      renderMotorsList('');
-      return;
-    } catch (e) {
-      console.warn('Error borrando motor_item remoto, borrando local', e);
-    }
-  }
-  // fallback local
-  motors[mid].items.splice(idx, 1);
-  saveLocal();
-  renderMotorItems(motors[mid]);
-  updateMotorTotal(mid);
-}
-
-// ---------- UI rendering & event wiring (mantengo la estructura previa) ----------
-
-// Cache de elementos
+// Elementos DOM
 const els = {
   searchCode: null, filterType: null, filterBrand: null, filterModel: null, tableBody: null,
   addArticleForm: null, addToMotorForm: null, searchMotor: null, motorsList: null,
@@ -394,11 +67,29 @@ function cacheEls() {
   els.clearFiltersBtn = document.getElementById('clearFiltersBtn');
 }
 
-// Filters & datalists
+// Utils
+function escapeHtml(s) { return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
 function uniqueValues(field) {
   const s = new Set();
   articles.forEach(a => { if (a[field]) s.add(a[field]); });
   return Array.from(s).sort();
+}
+
+// Populate filter selects & datalists
+function populateFilterOptionsAndDatalists() {
+  const types = uniqueValues('type');
+  const brands = uniqueValues('brand');
+  const models = uniqueValues('model');
+  const names = uniqueValues('name');
+
+  fillSelect(els.filterType, types, 'Todos');
+  fillSelect(els.filterBrand, brands, 'Todas');
+  fillSelect(els.filterModel, models, 'Todos');
+  fillDatalist('dlNames', names);
+  fillDatalist('dlTypes', types);
+  fillDatalist('dlBrands', brands);
+  fillDatalist('dlModels', models); // datalist para modelos
 }
 function fillSelect(selectEl, values, firstLabel) {
   if (!selectEl) return;
@@ -417,20 +108,6 @@ function fillDatalist(dlId, values) {
     dl.appendChild(o);
   });
 }
-function populateFilterOptionsAndDatalists() {
-  const types = uniqueValues('type');
-  const brands = uniqueValues('brand');
-  const models = uniqueValues('model');
-  const names = uniqueValues('name');
-
-  fillSelect(els.filterType, types, 'Todos');
-  fillSelect(els.filterBrand, brands, 'Todas');
-  fillSelect(els.filterModel, models, 'Todos');
-  fillDatalist('dlNames', names);
-  fillDatalist('dlTypes', types);
-  fillDatalist('dlBrands', brands);
-  fillDatalist('dlModels', models);
-}
 
 function filterArticles() {
   const codeQ = (els.searchCode?.value || '').trim().toLowerCase();
@@ -439,7 +116,7 @@ function filterArticles() {
   const fModel = els.filterModel?.value;
 
   return articles.filter(a => {
-    if (codeQ && !(a.code||'').toLowerCase().includes(codeQ)) return false;
+    if (codeQ && !a.code.toLowerCase().includes(codeQ)) return false;
     if (fType && a.type !== fType) return false;
     if (fBrand && a.brand !== fBrand) return false;
     if (fModel && a.model !== fModel) return false;
@@ -447,7 +124,7 @@ function filterArticles() {
   });
 }
 
-// Render inventario (muestro precio como pediste)
+// Render inventory table (ahora con columna precio)
 function renderTable() {
   const list = filterArticles();
   els.tableBody.innerHTML = '';
@@ -481,11 +158,11 @@ function renderTable() {
 
   // handlers
   els.tableBody.querySelectorAll('button.action-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const action = btn.getAttribute('data-action');
       const id = btn.getAttribute('data-id');
-      if (action === 'increase') await updateArticleQtyById(id, 1);
-      if (action === 'decrease') await updateArticleQtyById(id, -1);
+      if (action === 'increase') changeQtyById(id, 1);
+      if (action === 'decrease') changeQtyById(id, -1);
     });
   });
 
@@ -497,23 +174,41 @@ function renderTable() {
   });
 }
 
-// Delete flow (UI modal trigger)
-let articleIdToDelete = null;
+// Change qty by article id
+function changeQtyById(id, delta) {
+  const idx = articles.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  articles[idx].qty = Math.max(0, (Number(articles[idx].qty) || 0) + delta);
+  saveToStorage();
+  const el = document.getElementById('qty-' + escapeId(id));
+  if (el) el.textContent = articles[idx].qty;
+}
+
+// Delete flow by id
 function promptDeleteById(id) {
   articleIdToDelete = id;
   const art = articles.find(a => a.id === id);
   const text = art ? `¿Eliminar "${art.name}" (código ${art.code})? Esta acción también quitará el ítem de cualquier motor.` : '¿Eliminar este artículo?';
-  if (els.confirmDeleteText) els.confirmDeleteText.textContent = text;
+  els.confirmDeleteText.textContent = text;
   const modal = new bootstrap.Modal(els.modalConfirmDelete);
   modal.show();
 }
 function confirmDeleteNow() {
   if (!articleIdToDelete) return;
-  removeArticleById(articleIdToDelete);
+  // remove from articles
+  articles = articles.filter(a => a.id !== articleIdToDelete);
+  // remove from motors items where sourceArticleId matches
+  Object.keys(motors).forEach(mid => {
+    motors[mid].items = motors[mid].items.filter(it => it.sourceArticleId !== articleIdToDelete);
+  });
+  saveToStorage();
+  populateFilterOptionsAndDatalists();
+  renderTable();
+  renderMotorsList(els.searchMotor?.value?.trim() || '');
   articleIdToDelete = null;
 }
 
-// ---------- Modal: Add Article (usando createArticle) ----------
+// Add article modal (FAB) - ahora con validaciones obligatorias
 function setupAddArticle() {
   const modalEl = document.getElementById('modalAddArticle');
   const modal = new bootstrap.Modal(modalEl);
@@ -523,7 +218,7 @@ function setupAddArticle() {
     modal.show();
   });
 
-  els.addArticleForm.addEventListener('submit', async e => {
+  els.addArticleForm.addEventListener('submit', e => {
     e.preventDefault();
     const code = document.getElementById('addCode').value.trim();
     const name = document.getElementById('addName').value.trim();
@@ -541,13 +236,21 @@ function setupAddArticle() {
     if (!brand) { alert('Marca requerida'); return; }
     if (!model) { alert('Modelo requerido'); return; }
 
-    const newArticle = { code, name, measure, qty, price, type, brand, model };
-    await createArticle(newArticle);
+    // Siempre crear un nuevo artículo (aunque el código o nombre exista)
+    const newArticle = {
+      id: generateId('art'),
+      code, name, measure, qty, price, type, brand, model
+    };
+    articles.push(newArticle);
+
+    saveToStorage();
+    populateFilterOptionsAndDatalists();
+    renderTable();
     modal.hide();
   });
 }
 
-// ---------- Motors UI + Add to motor modal ----------
+// Motors: helpers
 function renderMotorsList(filterText='') {
   els.motorsList.innerHTML = '';
   const motorsArr = Object.values(motors).filter(m => !filterText || m.name.toLowerCase().includes(filterText.toLowerCase()));
@@ -565,7 +268,7 @@ function renderMotorsList(filterText='') {
           <div><h5 class="card-title mb-0">${escapeHtml(m.name)}</h5><div class="text-muted-small">ID: ${m.id}</div></div>
           <div class="text-end">
             <div class="fw-bold">Total: <span id="motor-total-${m.id}">${formatMoney(calculateMotorTotal(m))}</span></div>
-            <div class="text-muted-small">${(m.items||[]).length} ítems</div>
+            <div class="text-muted-small">${m.items.length} ítems</div>
           </div>
         </div>
 
@@ -600,15 +303,9 @@ function renderMotorsList(filterText='') {
         if (act === 'open') openMotorDetail(mid);
         else if (act === 'delete') {
           if (confirm('Eliminar este motor y todos sus ítems?')) {
-            // try remote delete
-            (async () => {
-              if (supabase && !mid.startsWith('motor_')) {
-                try { await deleteMotorRemote(mid); await loadData(); populateFilterOptionsAndDatalists(); renderTable(); renderMotorsList(''); return; } catch(e){ console.warn(e); }
-              }
-              delete motors[mid];
-              saveLocal();
-              renderMotorsList('');
-            })();
+            delete motors[mid];
+            saveToStorage();
+            renderMotorsList(els.searchMotor?.value?.trim() || '');
           }
         }
       });
@@ -644,7 +341,10 @@ function renderMotorItems(motor) {
     b.addEventListener('click', () => {
       const mid = b.getAttribute('data-mid');
       const idx = Number(b.getAttribute('data-idx'));
-      removeMotorItem(mid, idx);
+      motors[mid].items.splice(idx, 1);
+      saveToStorage();
+      renderMotorItems(motors[mid]);
+      updateMotorTotal(mid);
     });
   });
 
@@ -659,7 +359,16 @@ function updateMotorTotal(mid) {
   if (el && motors[mid]) el.textContent = formatMoney(calculateMotorTotal(motors[mid]));
 }
 
-// Add to motor modal
+// Create motor
+function createNewMotor(name) {
+  const id = generateId('motor');
+  motors[id] = { id, name, items: [], created_at: new Date().toISOString() };
+  saveToStorage();
+  renderMotorsList(els.searchMotor?.value?.trim() || '');
+  return id;
+}
+
+// Add to motor modal: uses select from articles (by id)
 function openAddToMotorModal(motorId) {
   const modalEl = document.getElementById('modalAddToMotor');
   const modal = new bootstrap.Modal(modalEl);
@@ -671,14 +380,16 @@ function openAddToMotorModal(motorId) {
   modal.show();
 }
 
+// Modified populateMotorSelect to show code, name and measure (como pediste)
 function populateMotorSelect() {
   const sel = document.getElementById('motorItemSelect');
   sel.innerHTML = '';
   const opt0 = document.createElement('option'); opt0.value=''; opt0.textContent='-- Seleccione un artículo --'; sel.appendChild(opt0);
   articles.forEach(a => {
     const o = document.createElement('option');
-    o.value = a.id; // value is article id or uuid
-    o.textContent = `${a.code || ''} ${a.name} ${a.measure ? '(' + a.measure + ')' : ''}`;
+    o.value = a.id; // value is article id
+    // muestra código, nombre y medida
+    o.textContent = `${a.code} ${a.name} ${a.measure || ''}`;
     sel.appendChild(o);
   });
   sel.onchange = () => {
@@ -698,6 +409,7 @@ function populateMotorSelect() {
   };
 }
 
+// Toggle labor (manual) vs selecting from inventory
 function toggleMotorItemFields(isLabor) {
   const selectWrap = document.getElementById('motorSelectWrap');
   const codeWrap = document.getElementById('motorItemCode').parentElement;
@@ -707,37 +419,48 @@ function toggleMotorItemFields(isLabor) {
   const priceWrap = document.getElementById('motorItemPrice').parentElement;
 
   if (isLabor) {
+    // Mostrar solo Nombre y Precio
     if (selectWrap) selectWrap.style.display = 'none';
     if (codeWrap) codeWrap.style.display = 'none';
     if (measureWrap) measureWrap.style.display = 'none';
     if (qtyWrap) qtyWrap.style.display = 'none';
+
     if (nameWrap) nameWrap.style.display = '';
     if (priceWrap) priceWrap.style.display = '';
+
+    // Hacer editable nombre y precio
     document.getElementById('motorItemName').readOnly = false;
     document.getElementById('motorItemPrice').readOnly = false;
+
+    // Limpiar/ajustar campos no usados
     document.getElementById('motorItemCode').value = '';
     document.getElementById('motorItemMeasure').value = '';
     document.getElementById('motorItemQty').value = 1;
     document.getElementById('motorItemSelect').value = '';
   } else {
+    // Restaurar vista completa para seleccionar desde inventario
     if (selectWrap) selectWrap.style.display = '';
     if (codeWrap) codeWrap.style.display = '';
     if (measureWrap) measureWrap.style.display = '';
     if (qtyWrap) qtyWrap.style.display = '';
+
     if (nameWrap) nameWrap.style.display = '';
     if (priceWrap) priceWrap.style.display = '';
+
+    // Nombre se rellena desde la selección (lectura), precio editable para override
     document.getElementById('motorItemName').readOnly = true;
     document.getElementById('motorItemPrice').readOnly = false;
   }
 }
 
+// Add to motor submit
 function setupAddToMotorForm() {
   const modalEl = document.getElementById('modalAddToMotor');
   const modal = new bootstrap.Modal(modalEl);
   const chk = document.getElementById('isLabor');
   chk.addEventListener('change', () => toggleMotorItemFields(chk.checked));
 
-  els.addToMotorForm.addEventListener('submit', async e => {
+  els.addToMotorForm.addEventListener('submit', e => {
     e.preventDefault();
     const mid = document.getElementById('currentMotorId').value;
     if (!motors[mid]) { alert('Motor inválido'); return; }
@@ -752,46 +475,27 @@ function setupAddToMotorForm() {
     if (!name) { alert('Nombre requerido'); return; }
 
     const item = { code: isLabor ? '' : code, name, measure: isLabor ? '' : measure, qty, price, isLabor: !!isLabor };
+    // if it comes from inventory, link sourceArticleId
     if (!isLabor && selectedArticleId) item.sourceArticleId = selectedArticleId;
-
-    await addItemToMotor(mid, item);
-    // recalculate totals UI already done in addItemToMotor
+    motors[mid].items.push(item);
+    saveToStorage();
+    renderMotorItems(motors[mid]);
+    updateMotorTotal(mid);
     modal.hide();
   });
 }
 
-async function removeMotorItem(mid, idx) {
-  const item = motors[mid].items[idx];
-  if (!item) return;
-  // if item has remote id and supabase available, call remote delete
-  if (supabase && item.id && !item.id.startsWith('mi')) {
-    try {
-      await deleteMotorItemRemote(item.id);
-      await loadData();
-      populateFilterOptionsAndDatalists();
-      renderTable();
-      renderMotorsList('');
-      return;
-    } catch (e) {
-      console.warn('Error remoto al borrar motor item, se borrará local', e);
-    }
-  }
-  motors[mid].items.splice(idx, 1);
-  saveLocal();
-  renderMotorItems(motors[mid]);
-  updateMotorTotal(mid);
-}
-
-// Sidebar & init wiring
+// Motors UI setup
 function setupMotorsUI() {
-  document.getElementById('btnNewMotor').addEventListener('click', async () => {
+  document.getElementById('btnNewMotor').addEventListener('click', () => {
     const name = prompt('Nombre del motor (ej: Motor 1, Motor A):');
     if (!name) return;
-    await createMotor(name.trim());
+    createNewMotor(name.trim());
   });
   if (els.searchMotor) els.searchMotor.addEventListener('input', () => renderMotorsList(els.searchMotor.value.trim()));
 }
 
+// Sidebar switching
 function setupSidebar() {
   const buttons = document.querySelectorAll('.sidebar .btn-square');
   buttons.forEach(b => {
@@ -806,11 +510,17 @@ function setupSidebar() {
   });
 }
 
-// Inicialización
-async function init() {
+// Format money util
+function formatMoney(v) { return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+// Init
+function init() {
   cacheEls();
-  // carga datos (remote preferido)
-  await loadData();
+  loadFromStorage();
+
+  // ensure sample data saved if none
+  if (!localStorage.getItem(STORAGE_KEY)) saveToStorage();
+
   populateFilterOptionsAndDatalists();
   renderTable();
 
@@ -818,16 +528,17 @@ async function init() {
   setupAddToMotorForm();
   setupMotorsUI();
   renderMotorsList('');
+
   setupSidebar();
 
-  // attach filters events
+  // filters events
   [els.searchCode, els.filterType, els.filterBrand, els.filterModel].forEach(el => {
     if (!el) return;
     el.addEventListener('input', () => renderTable());
     el.addEventListener('change', () => renderTable());
   });
 
-  // clear filters
+  // clear filters button
   if (els.clearFiltersBtn) {
     els.clearFiltersBtn.addEventListener('click', () => {
       if (els.searchCode) els.searchCode.value = '';
@@ -838,13 +549,16 @@ async function init() {
     });
   }
 
-  // confirm delete modal buttons
-  if (els.confirmDeleteBtn) els.confirmDeleteBtn.addEventListener('click', () => { confirmDeleteNow(); const modal = bootstrap.Modal.getInstance(els.modalConfirmDelete); if (modal) modal.hide(); });
-  if (els.cancelDeleteBtn) els.cancelDeleteBtn.addEventListener('click', () => { articleIdToDelete = null; });
+  // delete modal actions
+  els.confirmDeleteBtn.addEventListener('click', () => {
+    const modal = bootstrap.Modal.getInstance(els.modalConfirmDelete);
+    confirmDeleteNow();
+    if (modal) modal.hide();
+  });
+  els.cancelDeleteBtn.addEventListener('click', () => { articleIdToDelete = null; });
 
-  // add listeners for addArticle form wired in setupAddArticle
-  // save cache on unload
-  window.addEventListener('beforeunload', () => saveLocal());
+  // save on unload
+  window.addEventListener('beforeunload', () => saveToStorage());
 }
 
 document.addEventListener('DOMContentLoaded', init);
