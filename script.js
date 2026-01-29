@@ -2,6 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM listo');
 
   // TODO tu código existente acá adentro
+  document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    console.log('Click detectado en:', btn.id || btn.textContent);
+  });
+});
 console.log('script cargado correctamente');
 
 const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';
@@ -640,6 +645,7 @@ document.addEventListener('DOMContentLoaded', init);
 };
 
 });
+
 
 
 
