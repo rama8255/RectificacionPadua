@@ -249,7 +249,7 @@ function confirmDeleteNow() {
 }
 
 // Add article modal (FAB) - ahora con validaciones obligatorias
-function setupAddArticle() {
+async function setupAddArticle() {
   const modalEl = document.getElementById('modalAddArticle');
   const modal = new bootstrap.Modal(modalEl);
   const fab = document.getElementById('fabAddArticle');
@@ -619,6 +619,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
