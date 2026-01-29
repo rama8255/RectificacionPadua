@@ -266,7 +266,7 @@ async function setupAddArticle() {
     modal.show();
   });
 
-  [11:05, 29/1/2026] Ramiro: const els = {
+  const els = {
   addArticleForm: document.querySelector('#addArticleForm'),
 
   addCode: document.querySelector('#addCode'),
@@ -629,6 +629,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
