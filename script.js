@@ -258,7 +258,7 @@ async function setupAddArticle() {
     modal.show();
   });
 
-  els.addArticleForm.addEventListener('submit', e => {
+  els.addArticleForm.addEventListener('submit', async e => {
     e.preventDefault();
     const code = document.getElementById('addCode').value.trim();
     const name = document.getElementById('addName').value.trim();
@@ -619,6 +619,7 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
 
 
 
